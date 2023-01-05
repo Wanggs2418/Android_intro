@@ -98,3 +98,13 @@ IPv6: http://ubuntu.buct6.edu.cn/ 端口：80
 3、大连东软信息学院镜像服务器地址:(推荐)
 
 http://mirrors.neusoft.edu.cn 端口：80
+
+#### 3.2 无法下载的问题
+
+无法下载的问题：将其设置为无代理，而后自动下载 gradle 和相关文件。
+
+<img src="image/12.jpg" style="zoom:80%;" />
+
+**初始错误的解决方案**
+
+<img src="image/13.jpg" style="zoom:80%;" />
