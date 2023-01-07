@@ -669,3 +669,38 @@ class Student(val sno:String = "",val grade:Int = 0,name:string = "",age:Int=0):
 }
 ```
 
+## 第 3 章 Activity
+
+### 3.1 Activity 的基本用法
+
+Activity 是一种可以包含用户界面的组件，主要用于和用户进行交互。Ahdrooid 程序设计讲究逻辑和视图分离，最好每个 Activity 都能对应一个布局。
+
+```xml
+<!--设置布局，创建按钮-->
+<Button
+        android:id="@+id/button1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="开始"
+
+        />
+```
+
+- match_parent：和父元素一样宽
+- wrap_content：当前元素的高度刚好包含内容就行
+
+配置成为主程序，即点击桌面图标时首先打开的 Activity。如果没有声明任何一个 Activity 作为主 Activity，程序仍然可以正常安装，只是无法在启动器中打开或看到该程序，一般是作为第三方服务供替他应用内部进行调用。
+
+```xml
+<!--在FirstActivity中设置-->
+<intent-filter>
+    <action android:name="android.intent.action.MAIN" />
+    <category android:name="android.intent.category.LAUNCHER"/>
+</intent-filter>
+```
+
+**使用 Toast**
+
+Toast 是 Android 系统提供的提醒方式，将一些短小的消息通知给用户，且在一定时间内自动消失，不占用任何屏幕空间。
+
+首先定义一个弹出 Toast 的触发点，此处以设置的按钮 Button 作为触发点。
