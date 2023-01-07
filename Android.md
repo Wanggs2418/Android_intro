@@ -345,7 +345,9 @@ fun main(){
 
 对象的实例化是：`val p = Person()`，没有 Java 中的 `new` 关键字。
 
-**继承：**Student 类可继承 Person 类，从而自动拥有 Person 类中的属性和方法，同时 Student 还可以定义自己独有的属性和方法。
+**1.继承**
+
+Student 类可继承 Person 类，从而自动拥有 Person 类中的属性和方法，同时 Student 还可以定义自己独有的属性和方法。
 
 Kotlin 类继承需满足两点
 
@@ -368,5 +370,302 @@ class Student:Person(){
 }
 ```
 
+**2.Kotlin:构造函数：主构造函数和次构造函数**
 
+**主构造函数：**常用，每个类默认有一个不带参数的主构造函数，当然也可以显式地指定参数。主构造函数没有函数体，可直接定义在类名地后面。
+
+同时 Kotlin 提供 init 结构体来供主构造函数编写逻辑。Person 类后面的空括号表示 Student 类的主构造函数在初始化时候会调用 Person 类的无参数构造函数。
+
+```kotlin
+//将学号和年级字段添加到了主构造函数中
+class Student(val sno:String, val grade:Int):Person(){
+    init {
+        println("学号为： " + sno)
+        println("分数为： " + grade)
+    }
+}
+//实例化时，必须传入构造函数要求的参数
+val student = Student("w123",5)
+```
+
+**次构造函数：**Kotlin 提供一个给函数设定参数默认值的功能，基本上可以替代构造函数的作用。类只能有 1 个主构造函数，但可以有多个次构造函数。次构造函数可以实例化一个类，只不过其具有函数体。
+
+次构造函数通过 constructor 关键字定义，既有主构造函数又有次构造函数时，次构造函数必须调用主构造函数。
+
+```kotlin
+class Student(val sno:String, val grade:Int,name:String,age:Int):Person(name,age):{
+    //第一个次构造函数接受names和ages参数，而后通过this关键字调用主构造函数
+    constructor(names:String,ages:Int):this("",0,name,age){
+        
+    }
+    //第二个构造函数不接受任何参数，通过this关键字调用了第一个次构造函数，并将name和age赋值
+    //由于第一个次构造函数调用了主构造函数，第二个构造函数在调用次构造函数时，相当于间接调用主构造函数
+    constructor():this("",0){
+        
+    }
+}
+```
+
+**3.接口**
+
+Java 是单继承结构的语言，最多继承一个父类。但可实现任意多个接口，接口是实现多态编程的重要组成部分。
+
+为了让接口更加灵活，允许对接口定义的函数进行默认实现。
+
+```kotlin
+//接口的一个函数拥有函数体，实现或不实现都可以
+//但未拥有函数体的函数，类实现Study接口时，会强制实现
+interface Study {
+    fun readBooks()
+    fun doHomework() {
+        println("做作业是资源的哇！")
+    }
+}
+```
+
+**4.函数的可见性修饰符**
+
+Java 中有 public，private，protected 和 default(即什么都不写) 共 4 种函数可见性修饰符
+
+Kotlin 种有 public，private，protected 和 internal 
+
+![]()<img src="image/20.jpg" alt="20" style="zoom:80%;" />
+
+**5.数据类和单例类**
+
+数据类通常需要重写 equals()，hashCode()，toString()这几个方法。
+
+```kotlin
+//一行代码实现数据类，其余方法的重写自动生成
+data class Cellphone(val brand:String, val price:Double)
+```
+
+单例模式，最常用、最基础的设计模式之一，**用于避免创建重复的对象。**如使用实例模式使得某个类在全局最多拥有一个实例。
+
+kotlin 创建单例类，只需将 class 关键字改成 object 关键字即可。
+
+```kotlin
+object Singleton {
+    fun singlextonTest() {
+        println("singletonTest is called.")
+    }
+}
+//调用单例类中的函数,kotlin在幕后自动创建一个实例，并保证全局只存在一个Singleton实例
+Singleton.singletonTest()
+```
+
+### 2.5 Lambda 编程
+
+**集合的创建和示例**
+
+List、Set 和 Map 在 Java 中都是接口，List 的主要实现类是 ArrayList 和 LinkedList，Set 的实现类是 HashSet，Map 的实现类是 HashMap。
+
+listof 创建的是不可变的集合，该集合只用于读取，无法添加、修改或删除，设计的初衷与 val 关键字、类默认不可继承类似。
+
+```kotlin
+//提供内置的listOf()函数简化初始化集合
+val list = listOf("Apple","Orange","pear")
+```
+
+mutableListOf() 函数创建一个可变的集合，通过 add() 方法可向集合中添加新的内容。而 Set 用法与次类似，只不过换成了 setOf() 和 mutableSetOf() 函数而已。
+
+Map 是一种键值对形式的数据结构，传统的 Map 用法是先创建一个 HashMap 的实例，然后将一个个键值对数据添加到 Map 中。
+
+```kotlin
+//kotlin不建议通过map.put("apple",1)方式添加
+val map = HashMap<String,Int>()
+map["Apple"] = 1
+map["pear"] = 2
+//进一步简化为,此处 to 并不是关键字，而是一个 infix 函数
+val map = mapOf("Apple" to 1,"pear" to 2)
+for ((fruit,number) in map) {
+    println("the fruit " + fruit,"its number is " + number)
+}
+```
+
+**集合的函数式 API**
+
+Lambda 表达式语法结构：
+
+{参数名1：参数类型，参数名2：参数类型 -> 函数体}
+
+```kotlin
+val list = listOf("Apple","Orange","pear")
+val maxLengthFruit = list.maxBy({fruit:String -> fruit.length})
+//简化，kotlin规定，lambda 参数为函数的最后一个参数时，可将 Lambda 表达式移动函数括号外面
+//kotlin 出色的类型推导机制
+val maxLengthFruit = list.maxBy(){friut -> friut.length}
+//当lambda 只有一个参数时，可不必声明参数名，直接用 it 代替
+val maxlengthFruit = list.maxBy(){it.length}
+```
+
+集合中的 map() 函数，用于将集合中的每个元素映射成另一个值，映射的规则在 Lambda 中指定
+
+```kotlin
+//将名称改变为大写
+val newMapList = list.map{it.toUpperCase()}
+```
+
+filter() 函数，常用的函数式 API
+
+```kotlin
+val newList = list.filter{it.length <= 5}.map{it.toUppercase()}
+```
+
+any 和 all 函数
+
+-  any 函数用于判断合集中是否至少存在一个元素满足指定的条件
+- all 函数用于判断集合中是否所有元素满足条件
+
+```kotlin
+val anyResult = list.any{it.length <= 5}
+val allResult = list.all{it.length <=5 }
+```
+
+**Java 函数式 API**
+
+在 kotlin 中调用 Java 方法，并且该方法接收一个 Java 单抽象方法接口参数（**接口中只有一个待实现的方法**），可以使用函数式 API。
+
+```java
+//java语言
+new Thread(new Runnable(){
+    @override
+    public void run(){
+        System.out.println("first print");
+    }
+}).start();
+```
+
+用 kotlin 进行简化
+
+```kotlin
+//kotlin创建匿名类舍弃了关键字new,改用object
+Thread(object:Runnable{
+    override fun run(){
+        println("first print")
+    }
+}).start()
+//简化
+//1.只有一个java单抽象方法接口参数,省略名称
+Thread({
+    println("hihi")
+}).start
+//1.lambda表达式是最后一个参数是，可写在括号外
+//2.lambda是唯一一个参数是，可将括号省略
+Thread {
+    println("hihi")
+}.start()
+```
+
+### 2.6 空指针检查
+
+Android 系统异常类型发生最高的是空指针异常(NullPointerException)。
+
+```java
+//java语言
+public void doStudy(Study study) {
+    if (study != null){
+        study.readBooks();
+        study.doHomework();
+    }
+}
+```
+
+而 kotlin 具有相关机制自动避免，默认所有的参数和变量都不为空，没有空指针风险。kotlin 将空指针异常的检查提前到了编译时期，同时 kotlin 提供一套可空的类型系统，但要确保编译时将潜在的空指针异常处理掉，否则编译无法通过。
+
+```kotlin
+//默认同java的写法，kotlin机制会确保其不为空
+fun doStudy(study:Study){
+    study.readBooks()
+    study.doHomework()
+}
+//加"?"设置成可为空的类型，注意要处理掉空指针的隐患
+fun doStudy(study:Study?){
+    if (study != null){
+        study.readBooks()
+        study.doHomework()
+    }
+}
+```
+
+**kotlin 辅助判空机制**
+
+显然每次判空总要使用 if 语句判断，过于繁琐。
+
+?. 操作符，判空操作
+
+```kotlin
+//?.操作符
+//对象不为空时正常调用相应的方法，为空时什么也不做
+fun doStudy(study:Study?){
+    study?.readBooks()
+    study?.doHomework()
+}
+//相当于
+fun doStudy(study:Study?){
+    if (study != null){
+        study.readBooks()
+    }
+    if (study != null){
+        study.doHomework()
+    }
+}
+```
+
+?: 操作符，那边不为空返回那个结果
+
+```kotlin
+//左右两边都接收一个表达式，左边结果为空则返回右边表达式
+val c = a?:b
+```
+
+let 函数
+
+```kotlin
+//与?.结合使用，可解决?.操纵符每次调用都判断的繁琐
+//1.对象为空是什么也不做，不为空时调用let函数
+//2.let 函数将study对象作为参数传到 lambda表达式中，此时study对象定不为空
+fun doStudy(study:Study?){
+    study?.let {stu ->
+		stu.readBooks()
+        stu.doHomework()
+    }
+}
+//参数名：参数类型 -> 函数体
+//lambda 只有一个参数时可不用声明下，直接用it代替
+fun doStudy(study:Study?){
+    study?.let {
+		it.readBooks()
+        it.doHomework()
+    }
+}
+```
+
+### 2.7 kotlin 魔术技巧
+
+**字符串内嵌表达式**
+
+Java 一直使用传统的加号连接符拼接字符串，而 kotlin 则具有多数高级语言具有的字符串内嵌特性
+
+```kotlin
+println("内嵌实例,${obj.name}.hihi!")
+//仅有一个变量时，大括号可省略
+ptingln("hello,brand=$brand,price=$price")
+```
+
+**函数参数默认值**
+
+次构造函数在 kotlin 中很少用，引用设定的参数默认值功能很大程度能够替代次构造函数的作用
+
+```kotlin
+fun printParas(num:Int,str:String="hello"){
+    println("num is $num,str is $str")
+}
+//当然也可以通过键值对传递参数
+printParas(str="hello",num=123)
+//编写主构造函数并赋初值
+class Student(val sno:String = "",val grade:Int = 0,name:string = "",age:Int=0):Person(name,age){
+    
+}
+```
 
