@@ -118,8 +118,13 @@ Android 手机都内置有 GPS，结合地图功能，基于位置的服务(LBS�
 
 <img src="image/17.jpg" style="zoom:80%;" />
 
-- drawable 用来放图片
-- mipmap 用来放应用图标
+res 所有的资源文件都会在 R.java 文件下生成对应资源的 id，而自己创建的 assets 并不会。
+
+- drawable 用来放各种位图文件，(.png,jpg,.gif等)
+- mipmap-hdpi：高分辨率，一般图片存放处
+- mipmap-mdpi：中等分辨率，很少使用，一般用于旧手机
+- mipmap-xhdpi：超高分辨率，逐渐过渡的方向
+- mipmap-xxhdpi：超超高分辨率，一般用于高端机
 - values 用来放字符串、样式、颜色等
 - layout 用来放布局文件
 
@@ -139,6 +144,20 @@ AS 项目共有 3 种依赖方式：
 - 本地依赖：对本地的 jar 包或目录添加依赖关系
 - 库依赖：对项目中的库模块添加依赖关系
 - 远程依赖：对 jcenter 仓库的开源项目添加依赖
+
+**三个文件(此处以 java 语言描述，kotlin 与此差别不大)**
+
+1.代码逻辑文件：`MainActivity.kt`
+
+<img src="image/25.jpg" style="zoom:80%;" />
+
+2.布局文件：`layout_main.xml`
+
+<img src="image/26.jpg" style="zoom:80%;" />
+
+3.配置文件：`AndroidManifest.xml`
+
+<img src="image/27.jpg" style="zoom:80%;" />
 
 ### 1.7 日志工具的使用
 
@@ -704,3 +723,34 @@ Activity 是一种可以包含用户界面的组件，主要用于和用户进�
 Toast 是 Android 系统提供的提醒方式，将一些短小的消息通知给用户，且在一定时间内自动消失，不占用任何屏幕空间。
 
 首先定义一个弹出 Toast 的触发点，此处以设置的按钮 Button 作为触发点。
+
+kotlin 编写的项目会在 `app/build.gradle` 文件的头部默认引进一个 `kotlin-android-extension` 插件（其原理还是通过调用 `findViewById()` 的方法实现），此插件会根据布局文件定义的控件 id 自动生成一个具有相同名称的变量，从而可在 Activity 中可直接使用这个变量，不再调用 `findViewById()` 方法来实现。
+
+```kotlin
+override fun onCreate(savedInstanceState:Bundle?){
+    super.onCreate(savedInstanceState)
+    setContentView(R.layout.first_layout)
+    // val button1:Button = findViewById(R.id.button1)
+    //kotlin会自动生成控件变量
+    button1.setOnClickListener {
+        Toast.makeText(this,"hihihi",Toast.LENGTH_SHORT).show()
+    }
+}
+```
+
+**使用 Menu**
+
+Java 中的 Java Bean 概念，其是一个非常简单的 Java 类，可根据类中的字段生成相应的 Getter 和 Setter 方法，即：
+
+```java
+public class Book {
+    private int pages;
+    public int getPages(){
+        return pages;
+    }
+    public void setPages(int pages){
+        this.pages = pages;
+    }
+}
+```
+

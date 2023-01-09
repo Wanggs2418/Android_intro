@@ -14,6 +14,8 @@
 
 SDK 安装包网址：https://www.androiddevtools.cn/
 
+**SDK：**(software development kit)软件开发工具包,就是安卓系统,平台架构等的工具集合,如adb.exe
+
 <img src="image/02.jpg" style="zoom:67%;" />
 
 参考:https://www.cnblogs.com/gj0151/p/16093834.html 进行配置和安装
@@ -108,3 +110,47 @@ http://mirrors.neusoft.edu.cn 端口：80
 **初始错误的解决方案**
 
 <img src="image/13.jpg" style="zoom:80%;" />
+
+### 4.AVD 使用
+
+**AVD：** (android virtual machine):安卓虚拟设备,就是安卓的模拟器
+
+创建模拟器，尽量使得模拟器的分辨率不超过自己设备的分辨率
+
+<img src="image/24.jpg" style="zoom: 67%;" />
+
+AS 内置模拟器创建后的默认目录为：`C:\Users\用户名\.android\avd`，而一个完整的模拟器大概 9G 左右，占用空间很大。
+
+<img src="image/23.jpg" style="zoom:80%;" />
+
+### 5.Genymotion
+
+Genymotion 的运行需要依赖 VirtualBox，因此安装 Genymotion 之前需要先安装 VirtualBox。
+
+VirtualBox 下载：https://www.virtualbox.org/wiki/Downloads
+
+或者直接下载带 VirtualBox 的 Genymotion：https://www.genymotion.com/download/（建议 VirtualBox 采用默认的 C 盘安装目录）
+
+<img src="image/22.jpg" style="zoom:67%;" />
+
+#### 5.1安装*.apk的问题
+
+官网配置步骤指南：https://docs.genymotion.com/desktop/041_Deploying_an_app/
+
+Genymotion 模拟器，以及市场上大部分以快著称的 Android 模拟器基本上都是基于 x86 架构的，x86 架构的模拟器是无法兼容 ARM 架构的 APP 的，但市场大部分 APP 都是基于 ARM 架构，也就意味着 x86 模拟器无法兼容市场上大部分模拟器，这也是快的代价。
+
+**如何在 x86 的模拟器上安装并运行 ARM 架构的 APP**
+
+- 在 Android SDK 管理器中直接下载 ARM 架构的 Android 镜像
+- 安装一个 ARM translation 来让 Genymotion 支持 ARM 架构的 APP
+
+ARM translation，一个ARM转换包，也被翻译成ARM翻译器，它可以让x86架构的模拟器运行ARM架构的APP。
+
+#### 5.1 ova 辅助下载
+
+参考文章：https://www.cnblogs.com/rainboy2010/p/6387770.html
+
+针对虚拟设备很难下载，经常出现无法下载的情况，可以将一些虚拟设备对应的 ova下载好，而后将文件添加到
+
+`C:\Users\用户名\AppData\Local\Genymobile\Genymotion\ova`
+
