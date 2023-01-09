@@ -701,7 +701,6 @@ Activity 是一种可以包含用户界面的组件，主要用于和用户进�
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="开始"
-
         />
 ```
 
@@ -725,6 +724,10 @@ Toast 是 Android 系统提供的提醒方式，将一些短小的消息通知�
 首先定义一个弹出 Toast 的触发点，此处以设置的按钮 Button 作为触发点。
 
 kotlin 编写的项目会在 `app/build.gradle` 文件的头部默认引进一个 `kotlin-android-extension` 插件（其原理还是通过调用 `findViewById()` 的方法实现），此插件会根据布局文件定义的控件 id 自动生成一个具有相同名称的变量，从而可在 Activity 中可直接使用这个变量，不再调用 `findViewById()` 方法来实现。
+
+**注意：谷歌在 AS4.1 后宣布放弃使用 kotlin-android-extensions 插件，具体用 [viewbinding](###1.viewBuilding 的使用) 代替使用**
+
+原书作者文档说明：http://www.icodebang.com/article/303008
 
 ```kotlin
 override fun onCreate(savedInstanceState:Bundle?){
@@ -750,6 +753,122 @@ public class Book {
     }
     public void setPages(int pages){
         this.pages = pages;
+    }
+}
+```
+
+**销毁一个 Activity**
+
+可以通过返回键消除，或通过以下代码消除：
+
+```kotlin
+button1.setOnClickListener {
+    finish()
+}
+```
+
+### 3.2 使用 Intent 在 Activity 间穿梭
+
+Intent 是 Android 程序中组件交互的重要方式，可以指明当前组件想要执行的动作，在不同组件之间传递数据。Intent 一般可用于启动 Activity、启动 Service 以及发送广播等。
+
+**显式 Intent**
+
+startActivity() 方法专门启动 Activity，其接收一个 Intent 参数。Intent 参数由 Intent 构造函数的重载得到，此构造函数接收两个参数：1.参数Context ：要求提供的 Activity 上下文；2.参数Class：指定要启动的 Activity。
+
+注意：SecondActivity::class.java 的写法相当于 Java 中 SecondActivity.class 的写法。
+
+```kotlin
+binding.button1.setOnClickListener {
+    //1.参数Context ：要求提供的 Activity 上下文；2.参数Class：指定要启动的 Activity
+            val intent = Intent(this,SecondActivity::class.java)
+            startActivity(intent)
+        }
+```
+
+**隐式 Intent**
+
+不明确指出启动那个 Activity，而是指定一系列抽象的 action，category 等信息，交由系统分析此 Intent，并找到合适的 Activity 启动。
+
+如下，与 action 和 category 内容同时匹配的 Intent 才能得到 Activity 的响应。**每个 Intent 中只能指定一个 action**，但可以指定多个 category。
+
+```xml
+<activity
+            android:name=".SecondActivity"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.activitytest.ACTION_START"/>
+                <!-- 设置默认的额category,在调用startActivity()时将其自动添加到intent-->
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+ </activity>
+```
+
+
+
+
+
+
+
+## 新方法引入
+
+### 1.viewBuilding 的使用
+
+要求 AS 版本在 3.6.0 以上，注意从  Android Studio Arctic Fox (2020.3.1)  以及 Android Gradle 插件 (AGP) 的 7.0.0-alpha01 版开始，Android Studio 的版本号系统将以年份为基础，从而更加符合 IntelliJ IDEA 的版本模式。(**如果沿用以前的编号系统，则此版本将为 Android Studio 4.3**)
+
+在 app 文件夹下的 build.gradle 中的 android 结构下添加
+
+```xml
+buildFeatures {
+        viewBinding true
+    }
+```
+
+**Activity 中使用**
+
+启动 ViewBinding 功能后，Android Studio 会自动为编写的每个**布局文件**生成一个对应的 Binding 类，自动生成的 Binding 命名是按驼峰方式重命名，最后在后面加上 Binding 作为结尾。如 `activity_main.xml` 其对应的类为 `ActivityMainBinding` 类。
+
+有些布局文件不希望自动生成，可在根元素位置加如下声明：
+
+```xml
+<LinearLayout
+tools:viewBindingIgnore:true >
+</LinearLayout>
+```
+
+一般用法，在 onCreate() 内使用
+
+- 调用 activity_main.xml 布局文件对应的 Binding 类的 inflate 函数加载布局
+- 将根元素实例传入 setContentView() 函数当中，此时 Activity 就可成功显示 activity_main.xml 布局内容
+- 获取 TextView 控件实例
+
+```kotlin
+class MainActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        binding.textView.text = "Hello"
+    }
+
+}
+```
+
+在 onCreate() 函数之外使用，需要将 binding 变量声明为全局变量，因为 Kotlin 声明的变量都必须在声明的同时对其进行初始化。而这里无法在声明全局 binding 变量的同时对它进行初始化，故使用 lateinit 关键字对 binding变量进行了延迟初始化。(late init ->lateinit )
+
+```kotlin
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityMainBinding
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        ...
     }
 }
 ```

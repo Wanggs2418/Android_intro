@@ -111,7 +111,7 @@ http://mirrors.neusoft.edu.cn 端口：80
 
 <img src="image/13.jpg" style="zoom:80%;" />
 
-### 4.AVD 使用
+### 4.AVD 自带模拟器使用
 
 **AVD：** (android virtual machine):安卓虚拟设备,就是安卓的模拟器
 
@@ -123,7 +123,7 @@ AS 内置模拟器创建后的默认目录为：`C:\Users\用户名\.android\avd
 
 <img src="image/23.jpg" style="zoom:80%;" />
 
-### 5.Genymotion
+### 5.Genymotion 模拟器
 
 Genymotion 的运行需要依赖 VirtualBox，因此安装 Genymotion 之前需要先安装 VirtualBox。
 
@@ -153,4 +153,28 @@ ARM translation，一个ARM转换包，也被翻译成ARM翻译器，它可以�
 针对虚拟设备很难下载，经常出现无法下载的情况，可以将一些虚拟设备对应的 ova下载好，而后将文件添加到
 
 `C:\Users\用户名\AppData\Local\Genymobile\Genymotion\ova`
+
+### 6.夜神模拟器
+
+官网：https://www.yeshen.com/
+
+上手快，中文友好界面且符合习惯，缺点可能是游戏广告有点多(毕竟主打的就是游戏)
+
+安装完成后，只需在系统环境配置设置一下即可：将 `D:\Program Files\Nox\bin` 路径添加到 `path`内容下。
+
+之后想用该模拟器，只需要先打开模拟器，会自动在 AS 中加载，默认的名称为：`samsung SM-G9550`
+
+<img src="image/29.jpg" style="zoom:80%;" />
+
+对于为自动添加的可切换到 `D:\Program Files\Nox\bin` 目录下，在此处打开`CMD`（win7 可按 `shift` + 鼠标右键），输入：`nox_adb.exe connect 127.0.0.1:62001` ，创建连接。
+
+
+
+当然每次都手动输入过于麻烦，可创建一个脚本文件 `nox.bat`，输入的内容为：
+
+```shell
+D:\Program Files\Nox\bin\nox_adb.exe connect 127.0.0.1:62001
+```
+
+
 
