@@ -1,5 +1,7 @@
 # Android_intro
 
+基于第一行代码(第3版) ，首次尝试用 kotlin 书写相关代码
+
 ## 安装
 
 ### 1.Android Studio

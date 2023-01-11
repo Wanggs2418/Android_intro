@@ -757,6 +757,21 @@ public class Book {
 }
 ```
 
+而 kotlin 的语法糖，可直接赋值，其会在背后将代码转换为调用 setPages 和 getPages 方法
+
+再布局文件创建菜单：
+
+```xml
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/add_item"
+        android:title="添加"/>
+    <item
+        android:id="@+id/remove_item"
+        android:title="删除"/>
+</menu>
+```
+
 **销毁一个 Activity**
 
 可以通过返回键消除，或通过以下代码消除：
@@ -773,7 +788,9 @@ Intent 是 Android 程序中组件交互的重要方式，可以指明当前组�
 
 **显式 Intent**
 
-startActivity() 方法专门启动 Activity，其接收一个 Intent 参数。Intent 参数由 Intent 构造函数的重载得到，此构造函数接收两个参数：1.参数Context ：要求提供的 Activity 上下文；2.参数Class：指定要启动的 Activity。
+startActivity() 方法专门启动 Activity，其接收一个 Intent 参数。
+
+**Intent 参数由 Intent 构造函数的重载得到，此构造函数接收两个参数：1.参数Context ：要求提供的 Activity 上下文；2.参数Class：指定要启动的 Activity**。
 
 注意：SecondActivity::class.java 的写法相当于 Java 中 SecondActivity.class 的写法。
 
@@ -805,6 +822,234 @@ binding.button1.setOnClickListener {
                 android:value="" />
  </activity>
 ```
+
+可在 `intrnt-filter` 标签中再配置一个 `data` 标签，用于精确地指定当前 Activity 能够响应的数据
+
+- android：scheme，用于指定数据协议部分，如 https
+- android：host，用于指定数据的主机名，如 www.baidu.com
+- android：port，用于指定数据的端口部分，常跟在主机名之后
+- android：path，指定主机名和端口之后的部分
+- android：mimeType，指定可以处理的数据类型，允许使用通配符
+
+```kotlin
+val intent = Intent(Intent.ACTION_VIEW)
+intent.data = Uri.parse("https://www.baidu.com")
+startActivity(intent)
+```
+
+指定 Intent 的 action 为 Intent.ACTION_VIEW，此为系统的内置动作，常量值为 android.intent.action.VIEW，Uri.parse() 将字符串解析为一个 Uri 对象，再调用 Intent 的 setData() 方法将 Uri 对象传递进去(使用了前面的语法糖)
+
+```kotlin
+<activity
+            android:name=".ThirdActivity"
+            android:exported="false"
+            tools:ignore="AppLinkUrlError">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:scheme="https"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+```
+
+action 设置为 Intent.ACTION_VIEW 的常量值，category 为默认值，data 标签指定的协议为 https。
+
+**Intent 向 Activity 传递数据**
+
+Intent 提供 putExtra() 方法重载，将数据暂存于 Intent 中，启动 Activity 后，将数据从 Intent 取出即可。
+
+此处 putExtra() 方法接收两个参数：1.键名；2.真正传递的数据
+
+```kotlin
+//MainActivity
+val data = "打印出来了~"
+val intent = Intent(this,SecondActivity::class.java)
+intent.putExtra("extra_data",data)
+startActivity(intent)
+```
+
+**返回数据给上个 Activity**
+
+按下返回键就可以返回上一个 Activity，或者采用 Activity 类的 startActivityForResult() 方法，可以在 Activity 销毁时返回一个结果给上一个 Activity。
+
+startActivityForResult() 接收两个参数，一个参数为 Intent；第二个参数为请求码，可在回调中判断数据的来源。
+
+此处使用 startActivityForResult() 启动 SecondActivity，请求码唯一，此处为 1。使用该方法还需注意，在 SecondActivity 销毁后会调用上一个 Activity 的 onActivityResult() 方法，故需重写该方法：
+
+```kotlin
+//MainActivity
+binding.button1.setOnClickListener {
+            val intent = Intent(this,SecondActivity::class.java)
+            startActivityForResult(intent,1)
+        }
+//重写 onActivityResult()方法
+override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        when (requestCode){
+            1 -> if (requestCode == RESULT_OK){
+                val returnedData = data?.getStringExtra("data_retun")
+                Log.d("MainActivity","回溯数据是 $returnedData")
+            }
+        }
+    }
+```
+
+在 SecondActivity 给按钮注册点击事件并添加返回事件
+
+- 构建一个 Intent 仅用于传递数据
+- 调用 setResult() 方法，专门用于向上返回：参数1用于返回上一个 Activity 的处理结果（RESULT_OK/RESULT_CANCELED）;参数2将带有数据的 Intent 传递过去
+- 调用 finish() 销毁当前的 Activity
+
+```kotlin
+//SecondActivity
+binding.button2.setOnClickListener{
+            val intent = Intent()
+            intent.putExtra("data_retun","hello!,回溯成功啊!")
+            setResult(RESULT_OK,intent)
+            finish()
+        }
+//用户通过 Back 键返回而非按钮
+override fun onBackPressed() {
+        val intent = Intent()
+        intent.putExtra("data_return","按返回键返回")
+        setResult(RESULT_OK,intent)
+        finish()
+    }
+```
+
+### 3.3 Activity 生命周期
+
+Android 中的 Activity 是可以重叠的，每启动一个 Activity 就会覆盖在原来的 Activity 上，按返回键会销毁最上面的 Activity ,使得下面的 Activity 显示出来
+
+**返回栈**：Android 使用 (task) 来管理 Activity，一个任务就是一组存放在栈里 Activity 的集合，即返回栈 (back stack)。
+
+**Activity 状态**
+
+回收可见的 Activity 用户体验不好
+
+- 运行状态：该 Activity 处于栈顶
+- 暂停状态，不再处于栈顶，但是仍然可见，因为一个 Activity 并不一定会占满整个屏幕
+- 停止状态，完全不可见且不再处于栈顶
+- 销毁状态，从返回栈移除后变为该状态，系统最愿意回收
+
+**Activity 的生命周期**
+
+Activity 的 7 个回调方法，覆盖整个 Activity 的生存周期：
+
+- `onCreate()`：在首次创建时调用，用于完成初始化操作，如加载布局，绑定事件等
+- `onStart()`：不可见变为可见时候调用
+- `onResume()`：在与用户交互时调用，返回栈顶且处于运行状态
+- `onPasue()`：准备启动或恢复另一个 Activity 时调用，在该方法中将一些消耗的 CPU 资源释放掉，以及保存一些关键数据，应保证此方法的运行速度
+- `onStop()`：完全不可见时调用
+- `onDestory()`：在 Activity 被销毁前调用，之后变为销毁状态
+- `onResatrt()`：在停止状态变为运行状态之前调用，即重新启动
+
+**Activity 生存期**
+
+- 完整生存期：在 onCreate() 方法和 onDestory() 方法之间，onCreate() 用于初始化操作，onDestory() 用于释放内存
+- 可见生存期：onStart() 方法和 onStop() 方法之间，在此期间，对用户都是可见的。onStart() 对资源进行加载，onStop() 对资源进行释放，不占用过多的内存
+- 前台生存期：Activity 总是处于生存状态，用户可于其交互
+
+<img src="image/30.jpg" style="zoom:80%;" />
+
+**生存周期的简单实现**
+
+```xml
+<!--  指定对话框式主题      -->
+android:theme="@style/Theme.AppCompat.Dialog"
+```
+
+创建 `ActivityLifeCycle` 工程，进行演示：
+
+1. **运行工程**：onCreate()，onStart()，onResume() 依次执行，并成功进入 apk 界面。
+
+<img src="image/32.jpg" style="zoom:80%;" />
+
+<img src="image/31.jpg" style="zoom:80%;" />
+
+2. **点击第一个按钮**，从 MainActivity 切换到 NormalActivity，由于 NormalActivity 把 MainActivity 完全挡住(界面发生了切换)，故执行 onPause()，onStop() 方法。
+
+   <img src="image/35.jpg" style="zoom:80%;" />
+
+   ![](image/33.jpg)
+
+   **Back 键返回**，MainActivity 由停止状态开始，onRestart()，onStart()，onResume() 依次执行，而 MainActivity 并未重新建立，故不需要执行 onCreate() 方法。
+
+   <img src="image/34.jpg" style="zoom:80%;" />
+
+3. **点击第二个按钮**，从 MainActivity 切换到 DialogActivity，显然 DialogActivity 并没有完全遮挡 MainActivity，此时 MainActivity 只是进入暂停状态，即只执行了 onPause()。
+
+   <img src="image/36.jpg" style="zoom:80%;" />
+
+   <img src="image/37.jpg" style="zoom:80%;" />
+
+   **Back 返回键**，只需执行 onResume() 方法即可。
+
+   <img src="image/38.jpg" style="zoom:80%;" />
+
+4. **退出程序**，依次执行 onPause()，onStop()，onDestory() 方法，最终销毁 MainActivity。
+
+   <img src="image/39.jpg" style="zoom:80%;" />
+
+**Activity 被回收的解决方案**
+
+Activity 在完全遮挡后进入停止状态，由于系统内存不足等原因，此时被强迫回收。等从另一个 Activity 返回原来的 Activity ，由于原来的 Activity 已经回收，原有的临时数据可能丢失，影响用户使用体验。
+
+解决方案：Activity 的 onSaveInstanceState() 回调方法，保证在 Activity 回收前一定被调用。
+
+保存数据 -> onSaveInstanceState 接收一个 Bundle 类型参数，而 Bundle 提供一些列方法保存数据，如使用 putString() 方法保存字符串，每个保存方法接收两个参数：1.键，用于后面从 Bundle 获取值；2.想要保存到内容。
+
+```kotlin
+//MainActivity
+override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
+        super.onSaveInstanceState(outState, outPersistentState)
+        val tempData = "测试活动的临时数据文本"
+        outState.putString("data_key",tempData)
+    }
+```
+
+恢复数据 -> 通过 onSaveInstanceState() 方法保存的数据，在 Activity 被系统回收之前可通过相应的取值方法取出保存的内容。
+
+```kotlin
+//MainActivity
+//在onCreate() 方法内添加
+if (savedInstanceState != null) {
+            val tempData = savedInstanceState.getString("data_key")
+            Log.d(tag,"临时数据是$tempData")
+        }
+```
+
+当然，Bundle 可以与 Intent 结合传递数据，数据保存在 Bundle 对象中，再将 Bundle 对象存在 Intent(层层套娃)，到目标 Activity 后，依次取出即可得到传递的数据。
+
+### 3.4 Activity 的启动模式
+
+4 种启动模式，再 AndroidMainfest.xml 中通过给 `<activity>` 标签指定 `android:launchMode` 属性选择启动模式。
+
+- standard
+- singleTop
+- singleTask
+- singleInstance
+
+**standard**
+
+不指定显式的情况下，所有 Activity 默认启动该模式。Andorid 使用栈管理 Activity，此模式下，每当启动一个新的 Activity，它就会在返回栈中入栈，并处于栈顶位置。
+
+系统不在乎 Activity 是否已经在返回栈中存在，即使 Activity 已经栈顶，每次启动都会创建一个 Activity 实例。
+
+**singleTop**
+
+在栈顶已经存在 Activity 后，singleTop 模式下可以直接使用，不用新建 Activity 实例。
+
+
+
+**standard**
+
+singleTask 很好解决创建栈顶 Activity 的问题，但是如果 Activity 没有处于栈顶位置，还是会创建多个 Activity 实例。
+
+
 
 
 
