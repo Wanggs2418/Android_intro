@@ -1041,13 +1041,400 @@ if (savedInstanceState != null) {
 
 **singleTop**
 
-在栈顶已经存在 Activity 后，singleTop 模式下可以直接使用，不用新建 Activity 实例。
+在**栈顶**已经存在 Activity 后，singleTask 模式下可以直接使用，不用新建 Activity 实例。(注：主程序的 android:label 可设置为 apk 的外部名称)
 
+```kotlin
+//AndroidManifest.xml
+<activity
+            android:name=".MainActivity"
+            android:launchMode="singleTop"
+            android:label="我的程序"
+            android:exported="true">
+```
 
+**singleTask**
 
-**standard**
+singleTop 很好解决创建栈顶 Activity 的问题，但是如果 Activity 没有处于栈顶位置，还是会创建多个 Activity 实例。引入  singleTask，每次启动都会检查栈中是否存在实例。如果有则无需重建，只需将此 Activity 之上的所有 Activity 统统出栈，然后直接使用该 Activity 即可。
 
-singleTask 很好解决创建栈顶 Activity 的问题，但是如果 Activity 没有处于栈顶位置，还是会创建多个 Activity 实例。
+**singleInstance**
+
+最复杂特殊的一个，该模式下，会启动一个新的返回栈管理 Activity。可以实现不同程序共享此 Activity 实例，即都用同一个返回栈。
+
+```kotlin
+//只将SecondActivity设置为该模式
+android:launchMode="singleInstance"
+```
+
+<img src="image/40.jpg" style="zoom:80%;" />
+
+显然，SecondActivity 与 ThirdActivity，MainActivity 的 id 不同，说明 SecondActivity 在 singleInstance 模式下缺失存放在一个单独的返回栈中。
+
+需要注意的是，此时按返回键会从 ThirdActivity 直接返回 MainActivity，再按返回键才返回 SecondActivity。最后按 Back 返回键才算退出程序。
+
+### 3.5 Activity 的实践技巧
+
+**Activity 的位置**
+
+根据程序当前界面判断为哪一个 Activity，创建一个普通的 kotlin 类 BaseActivity。
+
+kotlin 中的 javaClass 表示获取当前实例的 Class 对象，相当于 getClass() 方法，BaseActivity::class.java 表示获取 BaseActivity 类的 Class 对象，相当于 Java 中调用 BaseActivity.class。
+
+以 javaClass 获取当前实例的对象，再调用 simpleName 获取当前实例的类名。
+
+```kotlin
+//普通的kotlin类，无需注册
+open class BaseActivity : AppCompatActivity(){
+    override fun onCreate(savedInstanceState:Bundle?){
+        super.onCreate(savedInstanceState)
+//        打印当前实例的类名
+        Log.d("基础活动",javaClass.simpleName)
+    }
+}
+```
+
+加上 open 关键字，使得该类可以被继承，成为该项目所有 Activity 的父类。接着让 MainActivity，SecondActivity，ThirdActivity 不再继承 AppCompatActivity，而是继承 BaseActivity。（而 BaseActivity 本身就是继承 AppCompatActivity ，对原来的项目影响不大）
+
+**随时随地退出程序**
+
+全局创建一个 Activity 集合，故使用单例类，集合中，通过 ArrayList 暂存 Activity。
+
+- 通过 addActivity() 方法向 ArrayList 中添加 Activity
+- 通过 removeActivity() 方法从 ArrayList 中移除 Activity
+- 通过 finishAll() 方法将 ArrayList 中存储的 Activity 全部销毁（可能有的 Activity 通过 Back 键已经销毁）
+
+这样，不管在什么地方退出程序，只需要调用 ActivityCollector.finishAll() 方法即可
+
+```kotlin
+//ActivityCollector
+object ActivityColletor {
+    private val activities = ArrayList<Activity>()
+//    自定义方法:添加
+    fun addActivity(activity: Activity){
+        activities.add(activity)
+    }
+//    移除
+    fun removeActivity(activity: Activity){
+        activities.remove(activity)
+    }
+//    销毁
+    fun finshAll(){
+        for (activity in activities){
+            if (!activity.isFinishing){
+                activity.finish()
+            }
+        }
+        activities.clear()
+    }
+}
+```
+
+杀掉单个进程的额方法，killProcess() 接收一个 id 参数，只能用于杀掉当前程序的进程。
+
+```kotlin
+binding.button3.setOnClickListener {
+//			 销毁所有 Activity
+            ActivityColletor.finshAll()
+//            杀掉当前进程
+            android.os.Process.killProcess(android.os.Process.myPid())
+}
+```
+
+**启动 Activity 的最佳写法**
+
+使用新的语法结构 companion object，并在 companion object 定义一个 actionStart() 方法，所有在 companion object 中的方法可以使用类似 Java 静态方法的形式调用。
+
+```kotlin
+//SecondActivity
+companion object {
+        fun actionStart(context: Context,data1:String,data2:String){
+            val intent = Intent(context,SecondActivity::class.java)
+            intent.putExtra("param1",data1)
+            intent.putExtra("param2",data2)
+            context.startActivity(intent)
+        }
+    }
+```
+
+SecondActivity 的数据通过 actionStart() 方法的参数化传递并存储在 Intent 中，最后调用 startActivity() 方法启动 SecondActivity。
+
+采用这种方法可以很清楚地了解到启动 SecondActivity 需要传递的数据。
+
+### 3.6 Kotlin 的使用技巧
+
+**1.标准函数 with、run、apply**
+
+Kotlin 的标准函数指的是 Standard.kt 文件中定义的函数，前面的标准函数 let() 配合操作符 ?. 进行辅助判空。
+
+- **with函数**
+
+接收两个参数：1.任意类型的对象；2.Lambda 表达式；
+
+描述：在 Lambda 表达式中提供第一个参数对象的上下文，并使用 Lambda 表达式中的最后一行代码作为返回值返回。
+
+作用：在连续调用同一个对象的多个方法时让代码更加精简
+
+```kotlin
+val result = with(obj){
+    //obj的上下文
+    "value" //最后一行作为with函数的返回值
+}
+```
+
+实现的功能要求：使用 StringBuilder 构建吃水果的字符串，最后将结果打印
+```kotlin
+//原始程序
+val list = listOf("Apple","Banana","Orange")
+val builder = StringBuilder()
+
+builder.append("start eating fruits.\n")
+for (fruit in list){
+    builder.append(fruit).append("\n")
+}
+builder.append("Ate all fruits")
+
+val result = builder.toString()
+println(result)
+
+//with 更改
+val result = with(StringBuilder()){
+    append("start eating fruits")
+    for (fruit in list){
+    	append(fruit).append("\n")
+}
+	append("Ate all fruits")
+    toString()
+}
+println(result)
+```
+
+- **run 函数**
+
+参数：一个 Lambda 参数，并在 Lambda 表达式中提供调用对象的上下文
+
+描述：与 with 函数类似，会使用 Lambda 表达式的最后一行代码吗作为返回值。不会直接调用，而是在某个对象的基础上调用。
+
+```kotlin
+val result = obj.run {
+    // obj 的上下文
+    "value" //最后一行作为 run 函数的返回值
+}
+
+//用run函数更改
+var result = StringBuilder().run {
+    append("start eatring fruits.\n")
+    for (fruits in list){
+        append(fruit).append("\n")
+    }
+    append("Ate all fruits.")
+    toString()
+}
+println(result)
+```
+
+**apply 函数**
+
+参数：一个 Lambda 参数，在 Lambda 表达中提供调用对象的上下文
+
+描述：与 run 函数很相似，不过无法指定返回值，而是自动返回调用对象的本身
+
+```kotlin
+val result = obj.apply {
+    //obj的上下文
+}
+result == obj
+
+//原有函数SecondActivity
+val intent = Intent(context,SecondActivity::class.java)
+intent.putExtra("para1","data1")
+intent.putExtra("para2","data2")
+context.startActivity(indent)
+
+//更改
+val intent = Intent(context,SecondActivity::class.java).apply{
+    putExtra("para1","data1")
+    putExtra("para2","data2")
+}
+context.startActivity(intent)
+```
+
+显然更改后的代码更加简洁，此处 Lambda 表达式的上下文就是 Intent 对象，可直接调用相关方法。而且参数化越多，优势越明显。
+
+**2.定义静态方法**
+
+在一些编程语言中又叫类方法，不需要创建实例就能调用的方法。调用静态方法，不需创建实例，**非常适合一些工具类的实现**
+
+```java
+//java定义静态方法，只需在方法声明上加 static 即可
+public class Util{
+    public static void doAction(){
+        System.out.println("do action")
+    }
+}
+//调用静态方法，不需创建实例
+Util.doAction()
+```
+
+但 kotlin 对静态方法却弱化了，在其中实现并不容易。**相对的 kotlin 推荐语法特性更好的单例类实现工具类**
+
+kotlin 没有直接定义静态类的方法，但提供了一些语法特性来支持类似于静态方法的语法特性。
+
+```kotlin
+//kotlin 推荐使用单例类
+object Util {
+    fun doAction(){
+       println("do action") 		
+    }
+}
+//虽然doAction()方法不是静态方法，但可以使用 Util.doAction()方式调用
+```
+
+但注意：单例类的写法会将整个类中的方法全部变为类似于静态方法的调用方式，只希望让类中的某个方法变为静态方法，则可以使用 companion object。定义的 doAction1() 方法需要先创建 Util 类才能调用，而 doAction2() 方法可直接使用 Util.doAction2() 方式调用。
+
+```kotlin
+//Util为普通类
+class Util {
+    fun doAction()1{
+        println("do action1")
+    }
+    //将类中的某个方法变为静态方法
+    companion object {
+        fun doAction2(){
+            println("do action2")
+        }        
+    }
+}
+```
+
+本质上，doAction2() 方法其实并不是静态方法，使用 companion object 会在 Util 类的内部创建一个伴生类，doAction2() 方法就是定义在伴生类里面的实例方法，kotlin 保证 Util 类只存在一个伴生类对象，调用 Util.doAction2() 方法实际就是调用 Util 类伴生对象的 doAction2() 方法。
+
+**kotlin 真正实现静态方法**
+
+注解（不常用）：companion object 只是在语法上模仿了静态方法的调用方式。而如果给单例类或 companion object 加上 @JvmStatic 的注解，kotlin 编译器会将这些方法编译为真正的静态方法。(注意注解只能加在单例类或 companion 和单例类上)
+
+```kotlin
+companion object {
+    	@JvmStatic
+        fun doAction2(){
+            println("do action2")
+        }        
+    }
+```
+
+此时 doAction2() 方法为真正的静态方法，koltin 和 Java 都可以使用 Util.doAction() 方法调用。
+
+顶层方法：指的是没有定义在任何类中的方法，如 main 方法。kotlin 会将顶层方法全部编译为静态方法，选择 File ，即可创建一个顶层方法。
+
+<img src="image/41.jpg" style="zoom:80%;" />
+
+```kotlin
+fun doSomething(){
+    println("顶层方法实现")
+}
+```
+
+定义好顶层方法后，kotlin 代码中的任何地方可通过方法名直接调用。但是在 Java 代码没有顶层方法的概念，因为所有方法都定义在类中，在 kotlin 创建的文件名 Helper.kt 通过 kotlin 编译器会自动创建一个叫做 HelperKt 的 Java 类，定义的 doSomething() 方法会以静态方法的形式定义在 HelperKt 类里面，在 Java 中可以使用 HelperKt.doSomething() 方法调用。
+
+## 第 4 章 UI设计
+
+### 4.1 编写程序界面方法
+
+Android 应用程序界面主要通过编写 XML 方式来实现，通过 XML 不仅能够了解界面背后的原理，而且编写出的界面具有很好的屏幕适配性。
+
+当然还有新近的 ConstraintLayout（约束布局） ，不过不适合通过编写 XML 方式开发界面，而是更加适合在可视化编辑器中使用拖放控件来进行操作，Google 推荐采用此方式布局。
+
+### 4.2 常见控件
+
+**TextView**
+
+最简单的一个控件，其中 warp_content 表示当前控件的大小刚好包住里面的内容，match_parent 表示当前控件大小和父布局的大小一样，即手机屏幕的宽度，默认的文字对齐方式为左对齐。
+
+android:gravity="center" 指定的对齐方式，center 等同于 center_vertical|center_horizontal，表示文字垂直和水平都居中。
+
+```xml
+android:layout_width="match_parent"
+android:layout_height="wrap_content"
+android:gravity="center"
+```
+
+字体颜色、大小指定
+
+```xml
+<!--注意文字使用 sp 为单位-->
+android:textColor="#00ff00"
+android:textSize="24sp"
+```
+
+**Button**
+
+可配置的属性和 TextView 差不多，按钮上文字默认英文字母大写，去除该效果，可用以下的命令保留原始的文字内容。
+
+```xml
+android:textAllCaps="false"
+```
+
+**EditText**
+
+和用户进行交互的重要控件，允许用户在控件里面输入和编辑内容。
+
+- 提示性文字根据 `android:hint="请输入"` 实现
+- 输入内容过多用 warp_content 定义的高度使得界面不美观，用 `android:maxLines="2"` 解决。定义的最大行数为 2 行，超过两行，文本会向上滚动。
+
+```kotlin
+override fun onClick(v: View?) {
+        when (v?.id){
+            R.id.button -> {
+                val inputText = binding.editText.text.toString()
+                Toast.makeText(this,inputText,Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+```
+
+调用 EditText 的 getText() 方法获取输入的内容（语法糖简化了书写：虽然写的是 text，但是实际调用的是 getText() 方法），再调用 toString() 方法将内容转换为字符串，最后用 Toast 将内容显示出来。
+
+**ImageView**
+
+用于界面上展示图片，通常图片放在 drawable 目录下，且现在的手机分辨率一般为 xxhdpi。
+
+注意：文件命名时必须以字母开头否则报错（The resource name must start with a letter）
+
+**ProgressBar**
+
+在界面显示一个进度条，表示程序正在加载一些程序，此处为显示加载的圆圈。
+
+<img src="image/42.jpg" style="zoom:80%;" />
+
+相当于一个动画，不进一步设置的话会一直旋转。因此需要将其与数据加载完成联系起来，使得其能在数据加载完成时消失。需用到 Activity 的属性(都有)默认为： `android:visibility =  visible`（可见的）；invisible(不可见的)，但仍然占据原来的位置和大小，即可看作透明状；gone 不可见且不占用任何屏幕空间。
+
+```xml
+<ProgressBar
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:max="100"
+        />
+```
+
+控件的可见性使用的是 setVisibility() 方法，允许传入 View.VISIBLE、View.INVISIBLE、View.GONE 这 3 种值。也可通过 style 属性将其指定为水平进度条，再通过 `android:max="100"` 给进度条设置一个最大值。
+
+```kotlin
+ override fun onClick(v: View?) {
+        when (v?.id){
+            R.id.button -> {
+                val inputText = binding.editText.text.toString()
+                Toast.makeText(this,inputText,Toast.LENGTH_SHORT).show()
+                binding.imageView.setImageResource(R.drawable.ic_launcher_background)
+                //设置动作响应，每次点击按钮会将进度加10
+                binding.progressBar.progress = binding.progressBar.progress + 10
+            }
+        }
+    }
+```
+
+**AlertDialog**
+
+弹出对话框，置于所有界面元素上，能够屏蔽其他控件的交互能力，一般用于提示一些重要的内容或信息。
 
 
 

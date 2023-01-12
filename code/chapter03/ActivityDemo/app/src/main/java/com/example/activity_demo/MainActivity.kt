@@ -12,27 +12,25 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.activity_demo.databinding.ActivityMainBinding
 
 
-class MainActivity:AppCompatActivity() {
+class MainActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+//      实际调用的是 getTaskId()方法
+        Log.d("主程序","Task id is $taskId")
         val binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 //        intent穿梭不同的activity,显示intent明确之处切换的activity
         binding.button1.setOnClickListener {
-            val intent = Intent(this,SecondActivity::class.java)
-            startActivityForResult(intent,1)
+            SecondActivity.actionStart(this,"传递到第二个活动的数据1","传递到第二个活动的数据2")
+
         }
 
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        when (requestCode){
-            1 -> if (requestCode == RESULT_OK){
-                val returnedData = data?.getStringExtra("data_retun")
-                Log.d("MainActivity","回溯数据是 $returnedData")
-            }
-        }
+//    显示生命周期阶段
+    override fun onRestart() {
+        super.onRestart()
+        Log.d("主程序重启","onResart")
     }
 
 //    菜单选项设置
