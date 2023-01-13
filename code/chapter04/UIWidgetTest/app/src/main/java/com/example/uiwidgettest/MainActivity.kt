@@ -1,6 +1,7 @@
 package com.example.uiwidgettest
 
 import android.app.Activity
+import android.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
@@ -22,8 +23,21 @@ class MainActivity : AppCompatActivity() , View.OnClickListener {
             R.id.button -> {
                 val inputText = binding.editText.text.toString()
                 Toast.makeText(this,inputText,Toast.LENGTH_SHORT).show()
-                binding.imageView.setImageResource(R.drawable.ic_launcher_background)
+//                点击后触发更换照片
+                binding.imageView.setImageResource(R.drawable.img_02)
                 binding.progressBar.progress = binding.progressBar.progress + 10
+                AlertDialog.Builder(this).apply {
+                    setTitle("这是一个对话窗口")
+                    setMessage("传递的信息")
+                    setCancelable(false)
+                    setPositiveButton("确认"){
+                        dialog,which ->
+                    }
+                    setNegativeButton("取消"){
+                        dialog,which ->
+                    }
+                    show()
+                }
             }
         }
     }

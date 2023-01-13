@@ -1394,9 +1394,11 @@ override fun onClick(v: View?) {
 
 **ImageView**
 
-用于界面上展示图片，通常图片放在 drawable 目录下，且现在的手机分辨率一般为 xxhdpi。
+用于界面上展示图片，通常图片放在 drawable 目录下，且现在的手机分辨率一般为 xxhdpi，建立文件夹 `drawable-xxhdpi` ,后续的图片放置于此即可。(图片格式最好为 png 格式)
 
 注意：文件命名时必须以字母开头否则报错（The resource name must start with a letter）
+
+<img src="image/49.jpg" style="zoom:80%;" />
 
 **ProgressBar**
 
@@ -1435,6 +1437,154 @@ override fun onClick(v: View?) {
 **AlertDialog**
 
 弹出对话框，置于所有界面元素上，能够屏蔽其他控件的交互能力，一般用于提示一些重要的内容或信息。
+
+注意：直接再 MainActivity.kt 种编写，无需更改 AndroidManifest.xml 文件。
+
+![](image/43.jpg)
+
+```kotlin
+//MainActivity
+AlertDialog.Builder(this).apply {
+                    setTitle("这是一个对话窗口")
+                    setMessage("传递的信息")
+                    setCancelable(false)
+                    setPositiveButton("确认"){
+                        dialog,which ->
+                    }
+                    setNegativeButton("取消"){
+                        dialog,which ->
+                    }
+                    show()
+                }
+```
+
+首先通过 AlertDialog.Builder 构建一个对话框，并使用 Kotlin 的标准 apply 函数。并在 apply 函数中设计这个对话框：标题、内容、是否使用 Back 键关闭对话框等，接下来调用 setPositiveButton() 方法为对话框设置确定按钮的点击事件以及取消按钮事件，最后调用 show() 方法将对话框显示出来。
+
+### 4.3 3 种基本布局
+
+布局是一种放置很多控件的容器，可以按照一定的规律调整内部控件的位置，同时布局也可以嵌套布局，从而形成丰富友好的界面。
+
+<img src="image/44.jpg" style="zoom:50%;" />
+
+**1.LinearLayout**
+
+线性布局会将其包含的控件在线性方向上依次排列，用 `android:orientation` 指定排列的方向 ，`verticcal|horizontal` 分别为垂直和水平方向排列。
+
+注意排列方向为 horizontal 时，内部的控件绝对不能将宽度指定为 match_parent，同理 vertical 高度不能指定为 match_parent。
+
+- `android:gravity`：指定文字在控件中的对齐方式
+- `android:layout_gravity`：指定控件在布局中的对齐方式
+- `android:layout_weight`：使用比例方式指定控件大小
+
+注意的是，排列方向为 horizontal(水平) 时，只有垂直方向的对齐方式才会生效；同理 vertical 也类似。
+
+实例：编写发送消息的界面
+
+此处将 EditText 和 Button 的宽度都指定为 0 dp，此时控件宽度由 layout_width 决定，设置的两者值均是 1 ，表示二者在水平方向平分宽度。原理解释：系统会将所有控件指定的 layout_weight 值相加，得到一个总值，然然后每个控件所占的比例就是用该控件的 layout_weight 值除以总值得到。
+
+```xml
+<EditText
+        android:id="@+id/send_message"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:hint="请输入发送的信息"
+        />
+    <Button
+        android:id="@+id/button"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="发送"
+        android:layout_weight="1"
+        android:textAllCaps="false"
+        />
+```
+
+更舒服的设计是，将 Button 的宽度改回 wrap_content，而 EditText 的 layout_weight 属性不变，仍为 1。这样可以在 Button 合适的前提下，让 EditText 占满水平方向剩余的屏幕。
+
+<img src="image/45.jpg" style="zoom:80%;" />
+
+**2.RelativeLayout**
+
+相对布局更加随意，通过相对定位的方式让构件出现在布局的任何位置。**RelativeLayout 属性很多，但有规律可循**。
+
+每个控件相对于父布局进行定位：
+
+```xml
+android:layout_alignParentLeft="true"
+android:layout_alignParentTop="true"
+```
+
+相对控件进行定位：
+
+```xml
+<!--按钮1相对于按钮3在左上-->
+android:layout_above="@+id/button3"
+android:layout_toLeftOf="@+id/button3"
+```
+
+![](image/46.jpg)
+
+边缘对齐
+
+- `android:layout_alignRight="@+id/button3"`：边缘右对齐
+- `android:layout_alignBottom="@+id/button3"`：边缘底部对齐
+
+<img src="image/47.jpg" style="zoom:80%;" />
+
+**FrameLayout**
+
+帧布局，应用场景少，布局简单。所有控件默认摆放在布局左上角，根据定义的前后顺序，构件会重叠。
+
+### 4.4 自定义控件
+
+所有控件直接或间接继承自 View，所有的布局直接或间接继承自 ViewGroup。View 为基本的 UI 组件，在屏幕上可以绘制一个矩形区域并响应该区域中的各种事件。其他控件都是在 View 的基础上添加了新功能。
+
+ViewGroup 是一种特殊的 View，可以包含多个子 View 和子 ViewGroup，相当于一个放置控件和布局的容器。
+
+<img src="image/48.jpg" style="zoom:80%;" />
+
+**引入布局**
+
+多个 Activity 都需要，为避免代码的大量重复，可通过引入布局的方式解决问题。
+
+- `android:layout_margin:"5dp"`，指定控件在上下左右方向的间距
+- `android:layout_marginLeft:"5dp"`，单独指定在某个方向的间距
+
+首先确保原有的标题布局隐藏，而后在 layout 下新建一个 title.xml 布局，即设计的标题栏布局。而后可在 activity_main.xml 中通过 `<include layout="@layout/title"/>` 进行调用。
+
+```kotlin
+class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+//        隐藏掉自带的标题栏
+        supportActionBar?.hide()
+    }
+}
+```
+
+**创建自定义控件**
+
+自定义控件解决多次重复的注册事件。在 TitleLayout 的主构造函数中声明 Context 和 AttributeSet 参数，布局中引入 TitleLayout 控件时就会调用这个构造函数，而后在 init 结构体中借助 LayoutInflater 的 from() 方法得到一个 LayoutInflater 对象，再用 inflate() 该方法动态加载布局文件，接收两个参数：1.布局文件的 id；2.给加载好的布局再添加父布局，此处使用的为 TitleLayout ，故直接传入 this。
+
+```kotlin
+//TitleLayout.kt
+class TitleLayout (context: Context,attrs:AttributeSet):LinearLayout(context,attrs) {
+    init {
+        LayoutInflater.from(context).inflate(R.layout.title,this)
+    }
+}
+```
+
+添加自定义控件时需指明控件的完整类名，包名也不省略，如下为在 activity_main.xml 写入的代码：
+
+```xml
+<com.example.uicustomviews.TitleLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        />
+```
 
 
 
