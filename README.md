@@ -176,5 +176,31 @@ ARM translation，一个ARM转换包，也被翻译成ARM翻译器，它可以�
 D:\Program Files\Nox\bin\nox_adb.exe connect 127.0.0.1:62001
 ```
 
+### 7.常见问题
 
+#### 7.1 RecyclerView 依赖配置问题
 
+**1.自动导入形式**
+
+选择 `File->Project Structure`
+
+<img src="image/53.jpg" style="zoom:80%;" />
+
+而后选择 `Dependencies->app` ，选择添加按钮中的 `Library Dependency`.
+
+<img src="image/55.jpg" style="zoom:80%;" />
+
+而后搜索：`recyclerview` 选择合适的版本应用即可
+
+<img src="image/56.jpg" style="zoom:80%;" />
+
+**注意：如果搜索一直没有结果，可配置国内代理**
+
+在 `File->settings` 选择设置国内代理即可，此处设置的为：
+
+```cmd
+Host name:mirrors.neusoft.edu.cn
+Port number:80
+```
+
+<img src="image/57.jpg" style="zoom:80%;" />

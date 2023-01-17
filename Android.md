@@ -1586,7 +1586,255 @@ class TitleLayout (context: Context,attrs:AttributeSet):LinearLayout(context,att
         />
 ```
 
+**重点：在自定义控件中使用 ViewBinding 功能**
 
+```kotlin
+class TitleLayout(context : Context, attrs : AttributeSet) : LinearLayout(context, attrs) {
+    private var binding : TitleBinding
+    init {
+        //重要的一行代码
+        binding = TitleBinding.inflate(LayoutInflater.from(context), this, true)
+//context参数实际上是一个 Activity 实例，在返回按钮的点击事件里，使用关键字 as 先转换为 Activity 类型再销毁
+        binding.titleBack.setOnClickListener {
+            val activity = context as Activity
+            activity.finish()
+        }
+        binding.titleEdit.setOnClickListener {
+            Toast.makeText(context, "Edit", Toast.LENGTH_SHORT).show()
+        }
+    }
+}
+```
+
+### 4.5 经典控件：ListView
+
+最常用的控件之一，用于展示大量数据。通过手指上下滑动的方式将屏幕外的数据滚动到屏幕内，如查看消息记录。
+
+- 集合中的数据借助适配器将数据传递给 ListView 控件，android 有很多适配器的实现类，推荐的是 ArrayAdapter，可以通过泛型来指定合适的数据类型，然后在构造函数中把适配的数据传入。ArrayAdapter 有多个构造函数，依次传入（Activity 实例，ListView 子项布局的选项，数据源）。
+
+- 调用 ListView 的 setAdapter() 方法，将构建好的适配器对象传递进去，从而建立 ListView 和 数据间的关联。
+
+注意的是：`android.R.layout.simple_list_item_1` 作为 ListView 子项布局的 id，是一个 Android 内置的布局文件，里面只有一个 TextView。
+
+```kotlin
+//MainActivity
+private val data = listOf("苹果","柿子","梨","桃子","西瓜","橙子","草莓","杨梅","蓝莓","葡萄","樱桃")
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        val adapter = ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,data)
+        binding.listView.adapter = adapter
+    }
+```
+
+**定制 Listview 界面**
+
+为文字配置图片，丰富界面表现
+
+1.定义一个实体类：作为 ListView 适配器的适配类型，建立 Fruit 类。
+
+2.为 ListView 子项指定一个自定义的布局：在 layout 文件夹下新建 fruit_item.xml。
+
+3.创建一个自定义的适配器：新建 FruitAdapter 类，继承自 ArrayAdapter，泛型指定为 Fruit 类。
+
+```kotlin
+//自定义适配器，创建FruitAdapter类
+class FruitAdapter(activity: Activity, val resourceId: Int, data: List<Fruit> ):ArrayAdapter<Fruit>(activity, resourceId, data){
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+//      加载传入传入的布局
+        val view = LayoutInflater.from(context).inflate(resourceId, parent, false)
+        val fruitImage: ImageView = view.findViewById(R.id.fruitImage)
+        val fruitName: TextView = view.findViewById(R.id.fruitName)
+//        获取当前 Fruit 实例
+        val fruit = getItem(position)
+        if (fruit != null){
+            fruitImage.setImageResource(fruit.imageId)
+            fruitName.text = fruit.name
+        }
+        return view
+    }
+}
+```
+
+4.最后修改 MainActivity 中的代码。
+
+```kotlin
+//MainActivity
+private val fruitList = ArrayList<Fruit>()
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+//        初始化数据,Fruit类列表
+        initFruits()
+//		  创建适配器        
+        val adapter = FruitAdapter(this, R.layout.friut_item, fruitList)
+        binding.listView.adapter = adapter
+    }
+```
+
+**优化 ListView **
+
+ListView 控件难用因为其很多细节可以优化，运行效率就是其中的一点。上面的方法中 ListView 的运行效率会很低，因为 getView() 方法每次都会将布局加载一遍，当快速滚动时，效率不足。
+
+getView() 方法还有一个 convertView 参数，用于将之前加载好的布局进行缓存，便于日后重用。从而借此可修改 FruitAdapter 类。
+
+- 不重复加载布局：用 getView() 方法进行判断，如果为 convertView == null，则用 layoutInflater 加载布局；如果 convertView != null，则对 convertView 进行重用。
+- 借助 ViewHolder 对 View 每次调用 findViewById() 获取控件进行优化。
+
+```kotlin
+//FruitAdapter类
+override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+//    变量的延迟赋值
+        val view: View
+        val viewHolder: ViewHolder
+        if (convertView == null){
+            //      加载传入传入的布局
+            view = LayoutInflater.from(context).inflate(resourceId, parent, false)
+            val fruitImage: ImageView = view.findViewById(R.id.fruitImage)
+            val fruitName: TextView = view.findViewById(R.id.fruitName)
+//            缓存数据
+            viewHolder = ViewHolder(fruitImage, fruitName)
+            view.tag = viewHolder
+        } else {
+            view = convertView
+            viewHolder = view.tag as ViewHolder
+    }
+```
+
+kotlin 用 inner class 新增内部类 viewHolder，用于对 ImageView 和 TextView 的控件实例进行缓存。convertView 为空，创建一个 ViewHolder 对象并在实例存储其中，而后调用 View 的 setTag() 方法，将 ViewHolder() 对象存储在 View 中。
+
+不为空，则直接调用 View 的 getTag() 方法，把 ViewHolder 重新取出。这样所有的控件实例都缓存在 ViewHolder 中，不必通过 findViewById() 获取控件了。
+
+**ListView 点击事件**
+
+响应用户点击事件，使用 setOnItemClickListener() 方法为 ListView 注册一个监听器，点击 ListView 中的任何一个子项时，就会调用到 Lambda 表达式。此处可通过 position 参数判断用户点击的是那个子项，而后通过 Toast 将水果的名字显示出来。
+
+```kotlin
+//MainActivity.kt
+//lambda 表达式
+binding.listView.setOnItemClickListener {
+            parent, view, position, id ->
+            val fruit = fruitList[position]
+            Toast.makeText(this, fruit.name, Toast.LENGTH_SHORT).show()
+        }
+```
+
+![](image/52.jpg)
+
+Lambda 表达式语法结构：
+
+{参数名1：参数类型，参数名2：参数类型 -> 函数体}
+
+Lambda 表达式声明了 4 个参数，实际用到的只有 position 参数，此时更推荐使用下划线来替代，但位置绝对不能改变。
+
+ ```kotlin
+ //下划线代替
+ binding.listView.setOnItemClickListener {
+             _, _, position, _ ->
+             val fruit = fruitList[position]
+             Toast.makeText(this, fruit.name, Toast.LENGTH_SHORT).show()
+         }
+ ```
+
+### 4.6 滚动控件：RecyclerView
+
+ListView 功能强大，但是运行效率是一大缺点，不使用一些技巧来提升其运行效率的话 ListView 性能会很差。同时，ListView 的扩展性不够好，只能实现数据纵向滚动的效果，横向滚动效果则做不到。
+
+Android 提供新增的控件—RecyclerView，相当于增强版 ListView，优化 ListView 的各种不足，同时官方也更加推荐使用 RecyclerView。
+
+**基本用法**
+
+- RecyclerView 属于新增控件，为确保其在所有的 Android 系统版本上都能使用，Google 将 RecyclerView 控件定义在 AndroidX 中。只需在 build.gradle 中添加对 RecyclerView 库的依赖即可。
+
+```xml
+implementation fileTree(dir: 'libs', include: ['*.jar'])
+implementation 'androidx.recyclerview:recyclerview:1.2.1'
+```
+
+参照：https://developer.android.google.cn/jetpack/androidx/releases/recyclerview?hl=zh_cn 进行声明。
+
+- 更改 `activty_main.xml` 文件，RecycleView 并不是内置在系统 SDK 中，所以需要把完整的包路径写出来。
+
+```kotlin
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+</LinearLayout>
+```
+
+- 创建 `Fruit` 类和 `fruit_item.xml` ，和上面一样
+
+- 准备一个 RecyclerView 适配器，新建一个 FruitAdapter 类
+
+  该适配器继承自 ViewHolder（在 FruitAdapter 中定义的一个内部类），并指定泛型为 FruitAdapter.ViewHolder。
+
+```kotlin
+class FruitAdapter(val fruitList: List<Fruit>) : RecyclerView.Adapter<FruitAdapter.ViewHolder>() {
+    inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val fruitImage: ImageView = view.findViewById(R.id.fruitImage)
+        val fruitName: TextView = view.findViewById(R.id.fruitName)
+    }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.fruit_item, parent, false)
+        return ViewHolder(view)
+    }
+    override fun onBindViewHolder(holder:ViewHolder, position: Int) {
+        val fruit = fruitList[position]
+        holder.fruitImage.setImageResource(fruit.imageId)
+        holder.fruitName.text = fruit.name
+    }
+    override fun getItemCount() = fruitList.size
+}
+```
+
+1. 首先定义一个内部类 ViewHolder 继承自 RecyclerView.ViewHolder ,ViewHolder 的主构造函数要传入一个 View 参数，FruitAdapter 也有一个主构造函数，主要用传入数据源。
+2. 重写三个方法，onCreateViewHolder() 方法用于**创建 ViewHolder 实例**，将加载出的布局传入构造函数中，并将 ViewHolder 的实例返回。
+3. onBindViewHolder() 方法用于**对 RecyclerView 子项数据进行赋值**，当子项出现在当前的屏幕中时，可通过 position 参数得到当前的实例 Fruit。然后将数据设置到 ViewHolder 的 ImageView 和 TextView 选择中去。
+4. getItemCount() 用于告诉 RecyclerView 一**共有多少个子项**，返回数据源的长度。
+
+**横向滚动**
+
+- 对 **fruit_item.xml 文件**布局排列方向进行更改，并设置固定宽度 80dp，采用 warp_content 则不美观，文字长度不一致。采用 match_parent 会导致宽度一个子项就占满整个屏幕。
+
+```xml
+<LinearLayout
+android:layout_width="80dp"
+android:layout_height="wrap_content"
+android:orientation="vertical">   
+    <ImageView
+        ...
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        />
+</LinearLayout>
+```
+
+设置 ImageView 和 TextView 水平居中：`center_horizontal`，并设置 `layout_marginTop="10dp"` ，使得文字图片保持一定的距离。
+
+- **修改 MainActivity 文件**
+
+只需添加一行代码，调用 LinearLayoutManager 的 setOrientation() 方法设置排列方向。
+
+```kotlin
+val layoutManager = LinearLayoutManager(this)
+//横向滚动添加的一行代码
+layoutManager.orientation = LinearLayoutManager.HORIZONTAL
+ // 设置到 RecyclerView 中，即指定 RecyclerView 布局方式
+binding.recyclerView.layoutManager = layoutManager
+```
+
+**其他布局**
+
+ListView 的布局排列由自身管理，而 RecyclerView 则交由 LayoutManager 实现。LayoutManager 制定了一套可扩展的布局排列接口，子类按照接口规范实现即可定制不同排列方式的布局。
+
+除了前面的 LinearLayoutManager 之外，RecyclerView 也提供了 **GridLayoutManager (实现网格布局)和 StaggeredGridLayoutManager（瀑布流布局）**。
 
 
 
@@ -1608,7 +1856,7 @@ buildFeatures {
     }
 ```
 
-**Activity 中使用**
+**1.Activity 中使用**
 
 启动 ViewBinding 功能后，Android Studio 会自动为编写的每个**布局文件**生成一个对应的 Binding 类，自动生成的 Binding 命名是按驼峰方式重命名，最后在后面加上 Binding 作为结尾。如 `activity_main.xml` 其对应的类为 `ActivityMainBinding` 类。
 
@@ -1622,9 +1870,8 @@ tools:viewBindingIgnore:true >
 
 一般用法，在 onCreate() 内使用
 
-- 调用 activity_main.xml 布局文件对应的 Binding 类的 inflate 函数加载布局
-- 将根元素实例传入 setContentView() 函数当中，此时 Activity 就可成功显示 activity_main.xml 布局内容
-- 获取 TextView 控件实例
+- **获取视图绑定类**：使用 `ActivityMainBinding.inflate(layoutInflater)`  单纯地加载布局，即调用 activity_main.xml 布局文件对应的 Binding 类的 inflate 函数加载布局
+- **关联界面**：调用 `setContentView(binding.root)` 方法将 视图绑定类 和 Activity 界面关联，，进而通过视图绑定类获得组件
 
 ```kotlin
 class MainActivity : AppCompatActivity() {
@@ -1654,4 +1901,52 @@ class MainActivity : AppCompatActivity() {
     }
 }
 ```
+
+**2.自定义组件的视图绑定 ( ViewBinding ) **
+
+- 明确的是自定义组件是 ViewGroup 子类，无法使用视图绑定
+- **初始化视图绑定并关联界面：**`binding = TitleBinding.inflate(LayoutInflater.from(context), this, true)` 进行 视图绑定初始化 及 关联界面的操作，`this` 为 `ViewGroup` 类型，即组件本身。
+
+```kotlin
+class TitleLayout(context : Context, attrs : AttributeSet) : LinearLayout(context, attrs) {
+    private var binding : TitleBinding
+    init {
+        binding = TitleBinding.inflate(LayoutInflater.from(context), this, true)
+        binding.titleBack.setOnClickListener {
+            val activity = context as Activity
+            activity.finish()
+        }
+        binding.titleEdit.setOnClickListener {
+            Toast.makeText(context, "Edit", Toast.LENGTH_SHORT).show()
+        }
+    }
+}
+```
+
+
+
+
+
+### 2.viewBuiding 原理
+
+参考：https://hanshuliang.blog.csdn.net/article/details/105066654
+
+https://blog.csdn.net/wobuyaoshiye/article/details/112602587
+
+https://blog.csdn.net/qq_45926462/article/details/128115748
+
+**ViewBuiding 视图绑定类**
+
+提供了两种将**视图绑定类**与**界面**的绑定方法，此处以 `layout` 文件夹下的 `activity_main.xml` 为例子。
+
+- `ActivityMainBinding.inflate ( LayoutInflater )`：需要额外的函数将其绑定，**主要用于 Activity 界面和 Dialog 对话框。**
+
+- `ActivityMainBinding.inflate ( LayoutInflater,  ViewGroup parent, attachToParent)`：可直接与界面进行绑定，**应用于自定义布局组件和 RecyclerView 适配器**。
+
+
+<img src="image/51.jpg" style="zoom:80%;" />
+
+用 build 之后，可在`app/build/generated/data_binding_base_class_source_out` 下找到转换后的 Java 类，其中 `TitleBinding.java` 文件中的两个 `inflate()` 方法为：
+
+<img src="image/50.jpg" style="zoom:80%;" />
 
