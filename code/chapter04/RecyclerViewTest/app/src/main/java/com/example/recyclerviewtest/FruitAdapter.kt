@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import android.view.ViewParent
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 
 class FruitAdapter(val fruitList: List<Fruit>) : RecyclerView.Adapter<FruitAdapter.ViewHolder>() {
@@ -15,8 +16,20 @@ class FruitAdapter(val fruitList: List<Fruit>) : RecyclerView.Adapter<FruitAdapt
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+//        创建ViewHolder实例
         val view = LayoutInflater.from(parent.context).inflate(R.layout.fruit_item, parent, false)
-        return ViewHolder(view)
+        val viewHolder = ViewHolder(view)
+        viewHolder.itemView.setOnClickListener {
+            val position = viewHolder.bindingAdapterPosition
+            val fruit = fruitList[position]
+            Toast.makeText(parent.context, "点击了外层布局${fruit.name}",Toast.LENGTH_SHORT).show()
+        }
+        viewHolder.fruitImage.setOnClickListener {
+            val position = viewHolder.bindingAdapterPosition
+            val fruit = fruitList[position]
+            Toast.makeText(parent.context, "点击了图片${fruit.name}",Toast.LENGTH_SHORT).show()
+        }
+        return viewHolder
     }
 
     override fun onBindViewHolder(holder:ViewHolder, position: Int) {

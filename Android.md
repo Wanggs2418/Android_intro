@@ -448,7 +448,7 @@ Java 中有 public，private，protected 和 default(即什么都不写) 共 4 �
 
 Kotlin 种有 public，private，protected 和 internal 
 
-![]()<img src="image/20.jpg" alt="20" style="zoom:80%;" />
+<img src="image/20.jpg" alt="20" style="zoom:80%;" />
 
 **5.数据类和单例类**
 
@@ -1159,7 +1159,7 @@ SecondActivity 的数据通过 actionStart() 方法的参数化传递并存储�
 
 采用这种方法可以很清楚地了解到启动 SecondActivity 需要传递的数据。
 
-### 3.6 Kotlin 的使用技巧
+### 3.6 Kotlin 的使用技巧1
 
 **1.标准函数 with、run、apply**
 
@@ -1835,6 +1835,202 @@ binding.recyclerView.layoutManager = layoutManager
 ListView 的布局排列由自身管理，而 RecyclerView 则交由 LayoutManager 实现。LayoutManager 制定了一套可扩展的布局排列接口，子类按照接口规范实现即可定制不同排列方式的布局。
 
 除了前面的 LinearLayoutManager 之外，RecyclerView 也提供了 **GridLayoutManager (实现网格布局)和 StaggeredGridLayoutManager（瀑布流布局）**。
+
+**瀑布流布局的实现**
+
+瀑布流宽度根据布局的列数自动适配，故设置 `android:layout_width="match_parent"`。
+
+`android:layout_margin="5dp"` 让子项间互留一点间距
+
+```xml
+<LinearLayout
+android:layout_width="match_parent"
+android:layout_margin="5dp"
+android:layout_height="wrap_content"
+android:orientation="vertical">   
+    <ImageView
+        ...
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        />
+</LinearLayout>
+```
+
+同样 MainActivity 只需修改一行代码，在 onCreate() 方法中创建一个 StaggeredGridLayoutManager 实例，其构造函数接收两个参数：1.指定布局的列数；2.指定布局的排列方向。
+
+```kotlin
+//MainActivity
+val layoutManager = StaggeredGridLayoutManager(3, StaggeredGridLayoutManager.VERTICAL)
+```
+
+瀑布模型，个别扩大，无空白间隔，更适合多文字的效果。
+
+<img src="image/58.jpg" style="zoom:80%;" />
+
+**GridLayoutManager (实现网格布局)** 实现的效果，整行同时扩大，具有整体性。
+
+<img src="image/59.jpg" style="zoom:80%;" />
+
+**RecyclerView 点击事件**
+
+需要根据子项具体的 View 去注册点击事件，实现子项的某个按钮的针对性处理。
+
+```kotlin
+override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+//        创建ViewHolder实例
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.fruit_item, parent, false)
+        val viewHolder = ViewHolder(view)
+        viewHolder.itemView.setOnClickListener {
+            val position = viewHolder.bindingAdapterPosition
+            val fruit = fruitList[position]
+            Toast.makeText(parent.context, "点击了外层布局${fruit.name}",Toast.LENGTH_SHORT).show()
+        }
+        viewHolder.fruitImage.setOnClickListener {
+            val position = viewHolder.bindingAdapterPosition
+            val fruit = fruitList[position]
+            Toast.makeText(parent.context, "点击了图片${fruit.name}",Toast.LENGTH_SHORT).show()
+        }
+        return viewHolder
+    }
+```
+
+在 onCreateViewHolder() 中注册点击事件，itemView 表示最外层布局，RecyclerView 可以实现子项中任意控件或布局的点击事件。在两个点击事件中先获取用户点击的 position，然后通过 position 拿到相应的 Fruit 实例。
+
+### 4.7 UI实践-聊天界面编写
+
+**9-Patch 图片格式的操作**
+
+参考：https://www.runoob.com/w3cnote/android-tutorial-9-image.html
+
+被处理过的 png 图片，可以指定那些区域被拉伸，那些不可以， 从而在图片拉伸的时候特定的区域不会发生图片失真。(可直接在 AS 中编辑保存)
+
+1.操作 Google 自带的工具：`D:\android-sdk\tools`，即在安装的 `sdk` 目录的 `tools` 工具下。
+
+口诀：左上拉伸，右下内容。
+
+- 左上两条边用于设置拉伸的纵向（L）和横向区域（T）
+- 右下两条边用于设置前景的纵向（R）:前景能显示的纵向范围。即前景的最上面可以显示到什么地方，最下面可以显示的什么地方；横向（B）表示前景能显示的横向范围。即前景的最左边可以显示到什么地方，最右边可以显示的什么地方。
+
+该图片用于设置指定范围内拉伸，其中圆角不在拉伸范围内，即圆角保持不变。鼠标点击生成黑线，按住 `shift` 键点击鼠标则消除黑线。
+
+<img src="image/60.jpg" style="zoom:80%;" />
+
+**activity_main.xml**
+
+其中放置了一个 RecyclerView 用于显示聊天的消息内容。
+
+EditText 用于输入消息；Button 用于发送消息。
+
+**消息类 Msg.kt**
+
+content 表示消息内容，type 表示消息类型。有两个值可以选择：TYPE_RECEIVED（收到的消息）；TYPE_SEND（发出的消息）。需要注意的是，定义常量的关键字 const 只有在单例类、companion object 或顶层方法中才可以使用。
+
+```kotlin
+class Msg(val content: String, val type: Int) {
+    companion object {
+        const val TYPE_RECEIVED = 0
+        const val TYPE_SENT = 1
+    }
+}
+```
+
+**RecyclerView 的子项布局：msg_left_item.xml、msg_right_item.xml**
+
+msg_left_item.xml：接收消息的子布局，受到的消息左对齐，使用设置好的图片为背景图。
+
+msg_right_item.xml：发出消息的子布局，发送的消息右对齐。
+
+**RecyclerView 的适配器：MsgAdapter 类**
+
+### 4.8 kotlin 使用技巧2
+
+**延迟初始化**
+
+```kotlin
+private lateinit var adapter: MsgAdapter
+```
+
+避免使用全局变量时候，赋值为 null 的情况。当然，必须保证后续在任何地方对其初始化，如果直接使用的话，程序会崩溃，抛出异常 `UninitializedPropertyAccessException` 异常。
+
+当然也可以通过一些方法判断是否完成了初始化（固定写法）,如果没有完成初始化，则立即对 adapter 变量进行初始化，否则什么也不用作。
+
+```kotlin
+if (!::adapter.isInitialized) {
+    adapter = MsgAdapter(msgList)
+}
+```
+
+**密封类**
+
+定义 Result 接口，用于表示某个操作的执行结果，接口不编写任何内容，然后定义两个类去实现 Result 接口。
+
+```kotlin
+interface Result
+class Success(val msg: String):Result
+class Faiure(val error:Exption):Result
+```
+
+getResultMsg() 方法接收一个 Result 参数，通过 when 语句判断，Result 是 Success 类，则返回成功消息，类似的 Failure 亦然。
+
+但是为了 kotlin 编译器的顺利进行，又不得不编写 else 条件，否则编译器不通过。而且如果新定义了一个类，忘记添加到分支中去，最终会走到 else 分支抛出异常，导致程序崩溃。**这就是一大问题：为满足编译器的要求而编写的无用条件分支。**
+
+```kotlin
+fun getResultMsg(result:Result) = when(result){
+    is Success -> result.msg
+    is Failure -> result.error.message
+    else -> throw IllegalArgumentException
+}
+```
+
+**解决方法**
+
+kotlin 的密封类，关键字：sealed class
+
+```kotlin
+sealed class Result
+//密封类是可继承的类，继承的时候需要在后面加上括号
+class Success(val msg: String):Result()
+class Failure(val error:Exception):Result()
+```
+
+使用密封类，可以去掉 else 条件正常编译。**密封类保证所有条件的全部处理，不会漏写分支。**
+
+原理：when 语句传入一个密封类变量作为条件时，kotlin 编译器会自动检查该密封类有那些子类，并强制要求将每个子类所对应的条件全部处理，从而保证即使没有编写 else 条件，也不会出现漏写条件分支的情况。
+
+```kotlin
+fun getResult(result:Result) = when(result) {
+    is Success -> result.msg
+    is Failure -> "错误原因为：${result.error.message}"
+}
+```
+
+要注意的是：密封类及其子类只能定义在同一个文件的顶层位置，不能嵌套到其他类中。
+
+## 第 5 章 兼顾平板：Fragment
+
+一般手机的大小：3 英寸~6 英寸；平板大小：7 英寸~10 英寸。
+
+为兼顾平板上的显示效果，Android 从 3.0 版本引入 Fragment 概念。最终在 Android 4.0 推出同时兼容手机平板的系统。
+
+### 5.1 Fragment 简介
+
+一种可以嵌入在 Activity 当中的 UI 片段，让程序更加合理充分利用大屏幕的空间。与 Activity 类似，包含布局、有生命周期，相当于一个迷你型 Activity。
+
+如手机上的新闻 Activity 跳转方案：
+
+<img src="image/61.jpg" style="zoom:67%;" />
+
+而平板上充分利用屏幕使用 Fragment 双页模式更优：
+
+<img src="image/62.jpg" style="zoom:67%;" />
+
+### 5.2 Fragment 使用方式
+
+
+
+
+
+
 
 
 
