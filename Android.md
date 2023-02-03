@@ -2026,13 +2026,132 @@ fun getResult(result:Result) = when(result) {
 
 ### 5.2 Fragment 使用方式
 
+系统内置的 android.app.Fragment；AndroidX 库中的 androidx.fragment.app.Fragment。使用 AndroidX 库中的 Fragment，可以让 Fragment 的特性在所有的 Android 系统版本中保持一致，而系统内置的 Fragment 在 Android 9.0 版本已经废弃。
 
+在 activity_main.xml 中指定添加 Fragment:
 
+```xml
+<fragment
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:id="@+id/leftFrag"
+        android:name="com.example.fragmenttest.LeftFragment"
+        android:layout_weight="1"/>
+<fragment
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:id="@+id/rightFrag"
+        android:layout_weight="1"
+        android:name="com.example.fragmenttest.RightFragment"/>
+```
 
+**动态添加 Fragment**
 
+可以在程序运行时动态添加到 Activity 中，将 activity_main.xml 中的 Fragment 替换为 FrameLayout。而 FrameLayout 布局所有的控件默认放在布局的左上角。
 
+给左侧 Fragment 按钮注册点击事件，调用 replaceFragment() 自定义方法添加 RightFragment，从而将右侧的 RightFragment 替换为 AnotherRightFragment。
 
+```kotlin
+//MainActivity
+override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        val button:Button = findViewById(R.id.button)
+        button.setOnClickListener {
+            replaceFragment(AnotherRightFragment())
+        }
+     	replaceFragment(RightFragment())
 
+private fun replaceFragment(fragment: Fragment) {
+        val fragmentManager = supportFragmentManager
+        val transaction = fragmentManager.beginTransaction()
+        transaction.replace(R.id.rightLayout, fragment)
+        transaction.commit()
+    }
+```
+
+动态添加需要 5 步：
+
+1. 创建待添加的 Fragment 实例
+2. 获取 FragmentManager，在 Activity 中直接调用 getSupportFragmentManager() 方法获取
+3. 开启一个事务，通过调用 beginTransaction()
+4. 向容器内添加或替换 Fragment，一般使用 replace() 方法实现，传入容器的 id 和待添加的 Fragment 实例
+5. 提交事务，调用 commit() 方法完成
+
+**在 Fragment 中实现返回栈**
+
+实现按下返回键返回上一个 Fragment，使用 FragmentTransaction 中的 addToBackStack() 方法。
+
+```kotlin
+transaction.replace(R.id.rightLayout, fragment)
+//返回栈
+transaction.addToBackStack(null)
+transaction.commit()
+```
+
+**Fragment 与 Activity 交互**
+
+Fragment 是嵌入 Activity 中显示的，但二者各自存在于一个独立类当中。为了方便 Fragment 和 Activity 进行交互，FragmentManager 提供一个类似于 findViewById() 的方法，用于从布局文件中获取 Fragment 实例。
+
+```kotlin
+//从Activity中获取Fragment实例
+val fragment = supportFragmentManager.findFragmentById(R.id.leftFrag) as LeftFragment
+//老版使用kotlin-android-extension插件改写
+val fragment = leftFrag as LeftFragment
+```
+
+在 Fragment 中调用 Activity 中的方法，通过调用 getActivity() 方法获得和当前 Fragment 相关联的 Activity 实例
+
+```kotlin
+if (activity != null) {
+    val mainActivity = activity as MainActivity
+}
+```
+
+### 5.3 Fragment 的生命周期
+
+- **onAttach()** 当 Fragment 和 Activity 建立关联时调用
+- **onCreateView()** 为 Fragment 创建视图（加载布局）时调用
+- **onActivityCreated()** 确保与 Fragment 相关联的 Activity 已经创建完毕
+- **onDestoryView()** 当与 Fragment 相关联时视图被移调用
+- **onDetach()** 用于将 Fragment 和 Activity 解除
+
+![](image/63.jpg)
+
+Kotlin 中定义常量的一般方式：在 companion object、单例类或顶层作用域中使用 const 关键字声明变量即可。
+
+1.加载 RightFragment，依次调用下列方法：
+
+<img src="image/65.jpg" style="zoom:80%;" />
+
+![](image/64.jpg)
+
+2.点击按钮，加载 AnotherRightFragment 替换当前的 RightFragment，此时 RightFragment 执行如下的方法：
+
+<img src="image/66.jpg" style="zoom:80%;" />
+
+3.按返回键，返回原来的 RightFragment 可得：
+
+<img src="image/67.jpg" style="zoom:80%;" />
+
+4.退出程序
+
+<img src="image/68.jpg" style="zoom:80%;" />
+
+注意：Fragment 中可通过 onSaveInstanceState() 方法保存数据，而后通过 onCreate、onCreateView() 等方法中 Bundle 类型的 savedInstanceState 参数重新获得。
+
+### 5.4 动态布局加载
+
+**限定符(qualifier)的使用**
+
+使用限定符判断使用的单页模式还是双页模式。创建 `layout-large` 文件夹，在该文件夹下创建 `activity_main.xml` 文件，用于双页模式，此时的 large 就是限定符，用于 large(大屏幕设备) 显示。
+
+常见的限定符：
+
+![](image/69.jpg)
+
+![](image/70.jpg)
 
 
 
@@ -2078,7 +2197,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         binding.textView.text = "Hello"
     }
-
 }
 ```
 
@@ -2118,6 +2236,14 @@ class TitleLayout(context : Context, attrs : AttributeSet) : LinearLayout(contex
     }
 }
 ```
+
+
+
+
+
+
+
+
 
 
 
