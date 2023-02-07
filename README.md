@@ -4,6 +4,16 @@
 
 初学者推荐使用-第一行代码(第2版)，书中的 `Java` 代码十分完善。对于最新的 `kotlin` 版本，由于涉及到最新的一些机制和迭代，如 google 在 AS4.1 后宣布放弃使用 kotlin-android-extensions 插件，对新手不太友好。
 
+## 多版本安装
+
+参考：https://blog.csdn.net/lplj717/article/details/122187559
+
+AS 历史版本下载：https://developer.android.google.cn/studio/archive?hl=zh-cn
+
+安装包有 2 种下载方式：安装版本(exe文件)；无安装版本(zip文件)，如果本地已经安装过 exe 版本，则其他版本 AS 的安装选择 zip 即可。
+
+![](image/71.jpg)
+
 ## 安装
 
 ### 1.Android Studio

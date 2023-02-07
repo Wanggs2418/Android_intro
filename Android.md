@@ -2153,6 +2153,41 @@ Kotlin 中定义常量的一般方式：在 companion object、单例类或顶�
 
 ![](image/70.jpg)
 
+**使用最小宽度限定符**
+
+最小宽度限定符(smallest-width qualifier)，允许对屏幕宽度指定一个最小值(单位dp)，屏幕大于这个值就加载布局，小于就加载另一个布局。
+
+创建文件夹：`layout-sw600dp`，屏幕宽度小于 600dp 时，仍然加载默认的 `layout/activity_main` 布局。
+
+### 5.5 Fragment 实践应用
+
+Fragment 很多时候用于平板开发使用，解决屏幕空间不能充分利用的问题。如果开发程序提供手机和平板两个版本，则需要耗费较大的资源，因此最佳的方法是编写兼容手机和平板的应用程序。
+
+新闻内容分为两个部分：头部显示新闻标题，正文显示内容，中间使用水平方向的细线隔开。双页模式时将左侧新闻列表与右侧新闻内容分隔开。
+
+**细线利用 View 实现，将 View 宽高设置为 1dp，再通过 background 属性给细线设置颜色。**
+
+首先用 onCreateView() 方法加载 news_content_frag 布局，接着提供 refresh() 方法，将隐藏的新闻内容布局设置成可见。
+
+在单页模式使用：创建一个 `NewsContentActivity` ，布局`activity_news_content.xml`。
+
+代码复用：`News.example.fragmentbestpractice`，直接在布局中引入`NewsContentFragment`，相当于把 news_content_frag 布局内容加入。
+
+```kotlin
+//activity_news_content.xml
+<fragment
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/newsContentFrag"
+        android:name="com.example.fragmentbestpractice.NewsContentFragment"/>
+```
+
+
+
+
+
+
+
 
 
 
@@ -2160,6 +2195,8 @@ Kotlin 中定义常量的一般方式：在 companion object、单例类或顶�
 ## 新方法引入
 
 ### 1.viewBuilding 的使用
+
+作者官方讲解：https://mp.weixin.qq.com/s/keR7bO-Nu9bBr5Nhevbe1Q
 
 要求 AS 版本在 3.6.0 以上，注意从  Android Studio Arctic Fox (2020.3.1)  以及 Android Gradle 插件 (AGP) 的 7.0.0-alpha01 版开始，Android Studio 的版本号系统将以年份为基础，从而更加符合 IntelliJ IDEA 的版本模式。(**如果沿用以前的编号系统，则此版本将为 Android Studio 4.3**)
 
@@ -2183,12 +2220,16 @@ tools:viewBindingIgnore:true >
 </LinearLayout>
 ```
 
-一般用法，在 onCreate() 内使用
+**在 onCreate() 内使用**
 
-- **获取视图绑定类**：使用 `ActivityMainBinding.inflate(layoutInflater)`  单纯地加载布局，即调用 activity_main.xml 布局文件对应的 Binding 类的 inflate 函数加载布局
-- **关联界面**：调用 `setContentView(binding.root)` 方法将 视图绑定类 和 Activity 界面关联，，进而通过视图绑定类获得组件
+- 使用 `ActivityMainBinding.inflate(layoutInflater)`  单纯地加载布局，即调用 activity_main.xml 布局文件对应的 Binding 类的 inflate 函数加载布局
+
+- 调用 Binding 类的 getRoot 函数可以得到 activity_main.xml 中根元素的实例 。同理调用 getTextView() 函数可以获得 id 为 textView 的实例。
+
+  将根元素传入 setContentView() 函数中，即 `setContentView(binding.root)` ,从而可以成功显示 activity_main.xml 布局的内容。然后获取 activity_main.xml 的布局内容，并设置需要显示的文字。
 
 ```kotlin
+//在 onCreate 中的写法
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -2200,7 +2241,9 @@ class MainActivity : AppCompatActivity() {
 }
 ```
 
-在 onCreate() 函数之外使用，需要将 binding 变量声明为全局变量，因为 Kotlin 声明的变量都必须在声明的同时对其进行初始化。而这里无法在声明全局 binding 变量的同时对它进行初始化，故使用 lateinit 关键字对 binding变量进行了延迟初始化。(late init ->lateinit )
+**在 onCreate() 函数之外使用**
+
+需要将 binding 变量声明为全局变量，因为 Kotlin 声明的变量都必须在声明的同时对其进行初始化。而这里无法在声明全局 binding 变量的同时对它进行初始化，故使用 lateinit 关键字对 binding变量进行了延迟初始化。(late init ->lateinit )
 
 ```kotlin
 class MainActivity : AppCompatActivity() {
@@ -2236,6 +2279,33 @@ class TitleLayout(context : Context, attrs : AttributeSet) : LinearLayout(contex
     }
 }
 ```
+
+**3.在 Fragment 中使用 ViewBinding**
+
+与在 Activity 中使用 ViewBinding 基本一样，此处假定一个布局文件为：`fragment_main.xm`l。
+
+启用 ViewBinding 后，会自动生成一个与之对应的 FragmentMainBinding 类，此时在` MainFragment.kt` 中显示该布局：
+
+```kotlin
+class MainFragment : Fragment(){
+    private var _binding； FragmentMainBinding? = null
+    private val binding get () = _binding!!
+    
+    override fun onCreateView(inflate:LayoutInflater, container:ViewGroup?, savedInstanceState: Bundle?): View{
+        _binding = FragmentMainBinding.inflate(inflate, container, false)
+        return binding.root
+    }
+    
+    override fun onDestoryView(){
+        super.onDestoryView()
+        _binding = null
+    }
+}
+```
+
+说明：核心仍然是调用 FragmentMainBinding 的 inflate() 函数去加载 fragment_main.xml 布局文件，由于是在 Fragment 中，故使用 3 参数的 inflate 函数重载。
+
+由于是在 onCreateView() 函数中加载布局，则理应在与其对应的 onDestoryView() 函数中将 binding 变量置空，从而保证 binding 变量的有效声明周期在 onCreateView() 函数和 onDestoryView() 函数之间。
 
 
 
