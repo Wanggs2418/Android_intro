@@ -1,5 +1,9 @@
 # Android_intro
 
+## 说明
+
+初学者推荐使用-第一行代码(第2版)，书中的 `Java` 代码十分完善。对于最新的 `kotlin` 版本，由于涉及到最新的一些机制和迭代，如 google 在 AS4.1 后宣布放弃使用 kotlin-android-extensions 插件，对新手不太友好。
+
 ## 安装
 
 ### 1.Android Studio
